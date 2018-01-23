@@ -6,7 +6,7 @@ import argparse
 import numpy as np
 import torch.nn as nn
 import torch
-from pg_methods.utils.approximators import MLP_factory
+from pg_methods.utils.networks import MLP_factory
 from pg_methods.utils.policies import MultinomialPolicy, BernoulliPolicy
 from pg_methods.utils import interfaces
 from pg_methods.algorithms.REINFORCE import REINFORCE
