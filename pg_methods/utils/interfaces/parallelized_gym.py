@@ -133,7 +133,7 @@ class SubprocVecEnv(VecEnv):
     def num_envs(self):
         return len(self.remotes)
 
-def make_env(env_id, seed, rank, log_dir):
+def make_env(env_id, seed, rank, logger=None):
     logging.warn('Atari is not supported. See https://github.com/ikostrikov/pytorch-a2c-ppo-acktr/blob/master/envs.py for atari support')
     def _thunk():
         env = gym.make(env_id)
