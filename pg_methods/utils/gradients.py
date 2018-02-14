@@ -57,3 +57,14 @@ def calculate_policy_gradient_terms(log_probs, advantage):
         advantage = Variable(advantage)
 
     return -log_probs * advantage
+
+def get_entropy(log_probs):
+    """
+    Calculates the entropy of a distribution
+    :param log_probs: the log probabilities output by the policy
+    :return: the entropy
+    """
+    entropy = -log_probs.exp() * log_probs
+    if not isinstance(entropy, Variable):
+        entropy = Variable(entropy)
+    return entropy
