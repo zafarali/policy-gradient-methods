@@ -1,3 +1,4 @@
+from torch.autograd import Variable
 from .. import gradients
 
 """
@@ -50,6 +51,7 @@ class PolicyGradientObjective(Objective):
         :param entropy: the value of the entropy regularization
         :param time_mean:
         """
+        super().__init__()
         self.entropy = entropy
         self.time_mean = time_mean
 
@@ -73,6 +75,16 @@ class PolicyGradientObjective(Objective):
 
         return loss
 
+class ValueFunctionObjective(Objective):
+    """
+    Calculates the objective for the value function:
+    (bootstrapped_return - trajectory.values)**2
+    """
+    def __init__(self):
+        super().__init__()
+
+    def _calculate(self, returns, trajectory):
+        return ((returns - trajectory.values)**2).mean()
 
 class NaturalPolicyGradientObjective(Objective):
     def __init__(self):

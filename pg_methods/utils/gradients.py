@@ -23,6 +23,36 @@ def calculate_returns(rewards, discount, masks=None):
 
     return returns[:-1]
 
+def calculate_bootstrapped_returns(rewards, discount, value_estimate, masks=None):
+    """
+    Calculates the bootstrapped return from a sequence of rewards and a final value estimate
+    :param rewards:
+    :param discount: the discount factor
+    :param value_estimate:
+    :param masks: the mask to take into account which sequences have already terminated
+    :return:
+    """
+    assert discount <= 1 and discount >= 0, 'discount is out of allowable range'
+    if masks is None:
+        # no masks at all
+        masks = torch.ones_like(rewards)
+
+    masks = masks.float()
+    trajectory_length = rewards.size()[0]
+    n_envs = rewards.size()[1]
+    returns = torch.zeros(trajectory_length, *rewards.size()[1:])
+    returns[-1] = value_estimate
+    rewards_copy = torch.zeros(trajectory_length-1, n_envs)
+
+    # saves all but the last reward
+    # this is so we can use the bootstrapped estimate there.
+    rewards_copy.copy_(rewards[:-1])
+
+    for t in reversed(range(trajectory_length)):
+        returns[t] = discount * returns[t+1] + masks[t] * rewards[t]
+
+    return returns[:-1]
+
 def calculate_advantages(rewards, discount, baselines=None):
     """
     Calculates the returns/advantages of the rewards
