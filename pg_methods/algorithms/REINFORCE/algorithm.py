@@ -7,6 +7,7 @@ import torch
 from pg_methods.algorithms.common import Algorithm
 from pg_methods.utils.data import obtain_trajectories
 import pg_methods.utils.gradients as gradients
+from pg_methods.utils.objectives import PolicyGradientObjective
 from torch.nn.utils import clip_grad_norm 
 
 class VanillaPolicyGradient(Algorithm):
@@ -15,6 +16,7 @@ class VanillaPolicyGradient(Algorithm):
                  policy,
                  policy_optimizer,
                  gamma=0.99,
+                 objective=PolicyGradientObjective(),
                  baseline=None,
                  logger=None,
                  max_horizon=None,
@@ -38,7 +40,7 @@ class VanillaPolicyGradient(Algorithm):
         :param max_horizon: the maximum length of a trajectory
         :param use_cuda: use GPU tensors from torch
         """
-        super().__init__(environment, policy, logger, use_cuda)
+        super().__init__(environment, policy, objective, logger, use_cuda)
         self.max_horizon = max_horizon if max_horizon is not None else sys.maxsize
         self.policy_optimizer = policy_optimizer
         self.baseline = baseline
@@ -63,13 +65,7 @@ class VanillaPolicyGradient(Algorithm):
             if self.baseline is not None:
                 self.baseline.update_baseline(trajectories.rewards, advantages, trajectories.values)
 
-            loss = gradients.calculate_policy_gradient_terms(trajectories.log_probs, advantages)
-            
-            loss = loss.sum(dim=0)
-            if self.time_mean:
-                loss = loss / trajectories.masks.sum(dim=0)
-            
-            loss = loss.mean()
+            loss = self.objective(advantages, trajectories)
 
             if self.use_cuda:
                 loss = loss.cuda()

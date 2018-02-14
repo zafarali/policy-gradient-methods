@@ -57,13 +57,10 @@ class PolicyGradientObjective(Objective):
 
 
         loss = gradients.calculate_policy_gradient_terms(trajectory.log_probs, advantages)
-
-        print(loss)
-
         loss = loss.sum(dim=0)
+
         if self.time_mean:
             loss = loss / trajectory.masks.sum(dim=0)
-
 
         if self.entropy is not False:
             entropy = gradients.get_entropy(trajectory.log_probs).sum(dim=0)
@@ -71,7 +68,6 @@ class PolicyGradientObjective(Objective):
                 entropy = entropy / trajectory.masks.sum(dim=0)
 
             loss -= self.entropy * entropy
-
 
         loss = loss.mean()
 

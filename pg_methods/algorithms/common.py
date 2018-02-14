@@ -1,7 +1,7 @@
-
+from pg_methods.utils.objectives import PolicyGradientObjective
 
 class Algorithm(object):
-    def __init__(self, environment, policy, logger=None, use_cuda=False):
+    def __init__(self, environment, policy, objective=PolicyGradientObjective(), logger=None, use_cuda=False):
         self.environment = environment
         if use_cuda:
             self.policy = policy.cuda()
@@ -9,6 +9,7 @@ class Algorithm(object):
             self.policy = policy
         self.use_cuda = use_cuda
         self.logger = logger
+        self.objective = objective
 
     def log(self, **kwargs):
         if self.logger is not None:
