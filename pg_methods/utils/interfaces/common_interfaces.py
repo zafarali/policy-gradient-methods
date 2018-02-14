@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 from torch.autograd import Variable
 
 # used to interface between pytorch and gym/other environments

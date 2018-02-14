@@ -11,7 +11,8 @@ from pg_methods.utils.policies import MultinomialPolicy, BernoulliPolicy
 from pg_methods.utils import interfaces
 from pg_methods.algorithms.REINFORCE import REINFORCE
 from pg_methods.utils.baselines import MovingAverageBaseline
-
+from pg_methods.utils.interfaces.state_processors import SimpleStateProcessor
+from pg_methods.utils.interfaces.action_processors import SimpleActionProcessor
 
 parser = argparse.ArgumentParser(description='REINFORCE')
 parser.add_argument('--env_name', type=str, default='CartPole-v0')
@@ -19,35 +20,39 @@ parser.add_argument('--gamma', type=float, default=0.99,
                     help='discount factor for reward (default: 0.99)')
 parser.add_argument('--seed', type=int, default=123, 
                     help='random seed (default: 123)')
-parser.add_argument('--n_episodes', type=int, default=10000,
+parser.add_argument('--n_episodes', type=int, default=5000,
                     help='number of episodes')
 parser.add_argument('--n_replicates', type=int, default=4, 
                     help='number of replicates')
 parser.add_argument('--baseline', type=str, default='compare',
                     help='choose one of: compare, moving_average, none')
+parser.add_argument('--only_plot', action='store_true', default=False)
 args = parser.parse_args()
 
 torch.manual_seed(args.seed)
+np.random.seed(seed)
 
 EPOCHS = args.n_episodes
 
 if args.baseline == 'compare':
-    baselines = [MovingAverageBaseline(0.8), None]
+    baselines = [MovingAverageBaseline(0.9), None]
 elif args.baseline == 'moving_average':
-    baselines = [MovingAverageBaseline(0.8)]
+    baselines = [MovingAverageBaseline(0.9)]
 else:
     baselines = [None]
 
-environment = gym.make('CartPole-v0')
-state_processor = interfaces.SimpleStateProcessor(
-                                environment.observation_space,
-                                one_hot=False)
+environment = interfaces.PyTorchWrapper(gym.make('CartPole-v0'))
+print(environment.observation_space)
+print(environment.action_space)
+state_processor = SimpleStateProcessor(environment.observation_space, one_hot=False)
 
-action_processor = interfaces.SimpleActionProcessor(environment.action_space)
+action_processor = SimpleActionProcessor(environment.action_space)
 
 for baseline in baselines:
+    if args.only_plot: break
     print('BASELINE: {}'.format(baseline))
     for replicate in range(args.n_replicates):
+        environment.seed(args.seed + replicate)
         print('REPLICATE #: {}'.format(replicate))
         approximator = MLP_factory(state_processor.state_size,
                                    [32, 32],
@@ -55,8 +60,7 @@ for baseline in baselines:
                                    hidden_non_linearity=nn.ReLU)
         policy = MultinomialPolicy(approximator)
 
-        optimizer = torch.optim.Adam(approximator.parameters(), lr=0.00005)
-
+        optimizer = torch.optim.RMSprop(approximator.parameters(), lr=0.001)
         algorithm = REINFORCE(environment,
                               policy,
                               optimizer,

@@ -1,5 +1,27 @@
 import torch
+from torch.autograd import Variable
 from pg_methods.utils import interfaces
+
+def calculate_returns(rewards, discount, masks=None):
+    """
+    Calculates the returns from a sequence of rewards.
+    :param rewards: a torch.Tensor of size (time, batch_size)
+    :param discount: a float
+    :param masks: will use the mask to take into account future rewards
+    """
+    assert discount <= 1 and discount >= 0, 'discount is out of allowable range'
+    discounted = []
+    if masks is None:
+        # no masks at all
+        masks = torch.ones_like(rewards)
+    masks = masks.float()
+    trajectory_length = rewards.size()[0]
+    n_processes = rewards.size()[1]
+    returns = torch.zeros(trajectory_length+1, *rewards.size()[1:])
+    for t in reversed(range(trajectory_length)):
+        returns[t] = discount * returns[t+1] + masks[t] * rewards[t]
+
+    return returns[:-1]
 
 def calculate_advantages(rewards, discount, baselines=None):
     """
@@ -18,6 +40,7 @@ def calculate_advantages(rewards, discount, baselines=None):
     if baselines is None: baselines = [0]*trajectory_length
 
     return_t = 0
+    
     # go backwards in time to calculate this
     for t in reversed(range(trajectory_length)):
         return_t = discount * return_t + rewards[t]
@@ -25,24 +48,12 @@ def calculate_advantages(rewards, discount, baselines=None):
 
     return interfaces.list2pytorch(advantage)
 
-#### TODO ADD TESTS:
-"""
-In [2]: calculate_return([0, 0, 10], 0.5)
-Out[2]: [2.5, 5.0, 10.0]
+def calculate_policy_gradient_terms(log_probs, advantage):
+    # sum over the time dimension and then mean over the batch dimension
+    # to get the MC samples
+    if not isinstance(log_probs, Variable):
+        log_probs = Variable(log_probs)
+    if not isinstance(advantage, Variable):
+        advantage = Variable(advantage)
 
-In [3]: calculate_return([0, 4, 5], 0.5)
-Out[3]: [3.25, 6.5, 5.0]
-"""
-
-def calculate_loss_terms(log_probs, advantage):
-    """
-    Returns the loss terms
-    log_prob * advantage
-    """
-    losses = []
-    loss = 0
-    advantage = advantage.float()
-    for t in range(len(log_probs)):
-        losses.append(-log_probs[t] * advantage[0, t])
-        loss += losses[-1]
-    return loss, losses
+    return -log_probs * advantage

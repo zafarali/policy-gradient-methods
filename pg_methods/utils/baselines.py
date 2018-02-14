@@ -1,11 +1,13 @@
 """
 Implements some common baselines
 """
+import torch
 import numpy as np
 
 class Baseline(object):
-    def update(self, reward):
+    def update_baseline(self, reward, advantages=None, values=None):
         raise NotImplementedError('need to implement!')
+
     def __call__(self, state):
         return 0
 
@@ -17,15 +19,16 @@ class MovingAverageBaseline(Baseline):
         self.beta = beta
         self.initiated = False
 
-    def update_baseline(self, rewards):
+    def update_baseline(self, rewards, advantages=None, values=None):
         if not self.initiated:
-            self.value = np.array(rewards).mean()
+            self.value = advantages.numpy().mean()
             self.initiated = True
         else:
-            self.value = self.value * (1-self.beta) + self.beta * np.array(rewards).mean()
+            self.value = self.value * (1-self.beta) + self.beta * advantages.numpy().mean()
 
     def __call__(self, state):
-        return self.value
+        # first dim is the number o
+        return self.value * torch.ones(state.size()[0])
 
     def __str__(self):
         return 'MovingAverageBaseline({})'.format(self.beta)
