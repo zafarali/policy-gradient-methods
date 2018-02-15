@@ -47,6 +47,25 @@ def test_calculate_policy_gradient():
     assert np.allclose(result, answers)
 
 
+def test_calculate_policy_gradient_with_masks():
+
+    # 3 agents, 2 time steps, one agent only takes one step.
+    probs = torch.FloatTensor([[0.5, 0.5, 0.15],
+                               [0.5, 0.33, 0.44]])
+    advantages = torch.FloatTensor([[0, 2, 1],
+                                    [1, 1, 5]])
+
+    masks = torch.FloatTensor([[1, 1, 1],
+                               [1, 1, 0]])
+    log_probs = probs.log()
+
+    # calculate the logprobs * adv by hand
+    answers = (-np.log(0.5)*2 - np.log(0.33)*1) + (-np.log(0.5)*0 - np.log(0.5)*1) + (-np.log(0.15)*1)
+    answers /= 3
+
+    result = calculate_policy_gradient_terms(log_probs, advantages, masks).data.sum(dim=0).mean()
+    assert np.allclose(result, answers)
+
 def test_calculate_bootstrapped_returns():
     rewards = torch.FloatTensor([[5, 3, 4],
                                  [8, 2, 3],

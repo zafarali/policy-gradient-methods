@@ -74,7 +74,7 @@ def calculate_advantages(rewards, discount, baselines=None):
 
     return interfaces.list2pytorch(advantage)
 
-def calculate_policy_gradient_terms(log_probs, advantage):
+def calculate_policy_gradient_terms(log_probs, advantage, masks=None):
     # sum over the time dimension and then mean over the batch dimension
     # to get the MC samples
     if not isinstance(log_probs, Variable):
@@ -82,7 +82,11 @@ def calculate_policy_gradient_terms(log_probs, advantage):
     if not isinstance(advantage, Variable):
         advantage = Variable(advantage)
 
-    return -log_probs * advantage
+    policy_gradient_terms = -log_probs * advantage
+    if masks is not None:
+        policy_gradient_terms = policy_gradient_terms * Variable(masks)
+
+    return policy_gradient_terms
 
 def get_entropy(log_probs):
     """
