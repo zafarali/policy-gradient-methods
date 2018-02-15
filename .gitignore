@@ -99,3 +99,13 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+# stored files
+*.pkl
+*.pyt
+*.npy
+*.npz
+
+# other stuff
+.DS_Store
+.idea/
