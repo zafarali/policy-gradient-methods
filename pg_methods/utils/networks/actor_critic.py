@@ -1,6 +1,20 @@
+"""
+These are wrappers to allow us to
+use a common interface for Actor Critics
+whether the architecture is shared or not.
+It saves one forward pass computation in the shared case.
+"""
 import torch.nn as nn
 
+
+# TODO: check if this "ActorCritic" abstraction is necessary
+# and calling backward() doesn't mix the loss functions
+# when registered to a module?
+
 class ActorCritic(object):
+    """
+    Unshared Actor Critic architecture.
+    """
     _pg_ac_shared = False
     def __init__(self,
                  actor,
@@ -16,6 +30,23 @@ class ActorCritic(object):
         action, log_prob = self.actor(state)
         value_estimate = self.critic(state)
         return value_estimate, action, log_prob
+
+    def cuda(self):
+        self.actor = self.actor.cuda()
+        self.critic = self.critic.cuda()
+
+    def cpu(self):
+        self.actor = self.actor.cpu()
+        self.critic = self.critic.cpu()
+
+    def __repr__(self):
+        # taken from the NN module class:
+        tmpstr = self.__class__.__name__ + '(\n'
+        tmpstr = tmpstr + '  (actor): ' + self.actor.__repr__() + '\n'
+        tmpstr = tmpstr + '  (critic): ' + self.critic.__repr__() + '\n'
+        tmpstr = tmpstr + ')'
+        return tmpstr
+
 
 class SharedActorCritic(nn.Module):
     _pg_ac_shared = True
