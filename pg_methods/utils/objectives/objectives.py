@@ -58,7 +58,9 @@ class PolicyGradientObjective(Objective):
     def _calculate(self, advantages, trajectory):
 
 
-        loss = gradients.calculate_policy_gradient_terms(trajectory.log_probs, advantages)
+        loss = gradients.calculate_policy_gradient_terms(trajectory.log_probs,
+                                                         advantages,
+                                                         trajectory.masks)
         loss = loss.sum(dim=0)
 
         if self.time_mean:

@@ -84,7 +84,7 @@ def calculate_policy_gradient_terms(log_probs, advantage, masks=None):
 
     policy_gradient_terms = -log_probs * advantage
     if masks is not None:
-        policy_gradient_terms = policy_gradient_terms * Variable(masks)
+        policy_gradient_terms = policy_gradient_terms * Variable(masks.float())
 
     return policy_gradient_terms
 
