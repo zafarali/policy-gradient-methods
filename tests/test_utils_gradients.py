@@ -1,6 +1,6 @@
-from pg_methods.utils.gradients import (calculate_returns,
-                                        calculate_policy_gradient_terms,
-                                        calculate_bootstrapped_returns)
+from pg_methods.gradients import (calculate_returns,
+                                  calculate_policy_gradient_terms,
+                                  calculate_bootstrapped_returns)
 import numpy as np
 import torch
 

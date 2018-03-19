@@ -5,10 +5,11 @@ import sys
 import numpy as np
 import torch
 from pg_methods.algorithms.common import Algorithm
-from pg_methods.utils.data import obtain_trajectories
-import pg_methods.utils.gradients as gradients
-from pg_methods.utils.objectives import PolicyGradientObjective
+from ...data import obtain_trajectories
+from ... import gradients
+from ...objectives import PolicyGradientObjective
 from torch.nn.utils import clip_grad_norm 
+import logging
 
 class VanillaPolicyGradient(Algorithm):
     def __init__(self,
@@ -63,9 +64,16 @@ class VanillaPolicyGradient(Algorithm):
             advantages = returns - trajectories.values
             
             if self.baseline is not None:
-                self.baseline.update_baseline(trajectories.rewards, advantages, trajectories.values)
+                baseline_loss = self.baseline.update_baseline(trajectories, returns)
 
             loss = self.objective(advantages, trajectories)
+
+            # add the baseline loss to the overall loss to get a joint loss
+            # this allows for shared architectures between policy and baseline
+            # this is only run if the function approximator doesn't have an
+            # associated baseline with it.
+            if self.baseline is not None and self.baseline.optimizer is None:
+                loss += baseline_loss
 
             if self.use_cuda:
                 loss = loss.cuda()
@@ -77,11 +85,15 @@ class VanillaPolicyGradient(Algorithm):
 
             reward_summary = torch.sum(trajectories.rewards * trajectories.masks.float(), dim=0) 
             if i % 100 == 0 and verbose:
-                print('Episode {}/{}: loss {} episode_reward {}'.format(i, n_episodes, loss.data[0], reward_summary.mean()))
-                print('Longest Trajectory {} / Individual rewards: {}'.format(trajectories.masks.sum(dim=0).max(), reward_summary.tolist()))
+                print('Episode {}/{}: loss {:3g} episode_reward {:3g}, average_value: {:3g}'.format(i, n_episodes,
+                                                                                                    loss.data[0],
+                                                                                                    reward_summary.mean(),
+                                                                                                    trajectories.values.mean()))
+                print('Longest Trajectory {} / Individual rewards: {}'.format(trajectories.masks.sum(dim=0).max(),
+                                                                              reward_summary.tolist()))
             rewards.append(torch.sum(trajectories.rewards, dim=0).mean())
             losses.append(loss.data[0])
-            self.log(episode=i, reward=reward_summary.mean(), trajectory=trajectories)
+            self.log(episode=i, returns=returns, reward=reward_summary.mean(), trajectory=trajectories)
         
         return np.array(rewards), losses
 
@@ -104,6 +116,7 @@ class REINFORCE(Algorithm):
                  lr_scheduler=None,
                  use_cuda=False):
         super().__init__(environment, policy, logger, use_cuda)
+        logging.warning('Use `VanillaPolicyGradient` for latest code base')
 
         self.max_horizon = max_horizon if max_horizon is not None else sys.maxsize
         self.policy_optimizer = policy_optimizer
@@ -128,7 +141,7 @@ class REINFORCE(Algorithm):
             returns = gradients.calculate_returns(trajectory.rewards, self.gamma)
             advantages = returns - trajectory.values
             if self.baseline is not None:
-                self.baseline.update_baseline(trajectory.rewards, advantages, trajectory.values)
+                self.baseline.update_baseline(trajectory, advantages)
     
             policy_loss = gradients.calculate_policy_gradient_terms(trajectory.log_probs, advantages)
             policy_loss = policy_loss.sum(dim=0).mean()

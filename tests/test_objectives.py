@@ -1,8 +1,8 @@
 import torch
 import numpy as np
 from torch.autograd import Variable
-from pg_methods.utils.objectives import PolicyGradientObjective
-from pg_methods.utils.data.collectors import MultiTrajectory
+from pg_methods.objectives import PolicyGradientObjective
+from pg_methods.data.collectors import MultiTrajectory
 
 def test_policy_gradient_objective():
     traj = MultiTrajectory(2)

@@ -1,12 +1,17 @@
+import matplotlib
+matplotlib.use('Agg')
 import argparse
 import numpy as np
 import torch.nn as nn
 import torch
-from pg_methods.utils.networks import MLP_factory
-from pg_methods.utils.policies import MultinomialPolicy, BernoulliPolicy
-from pg_methods.utils import interfaces
+import os
+import matplotlib.pyplot as plt
+import seaborn as sns
+from pg_methods import interfaces
 from pg_methods.algorithms.REINFORCE import VanillaPolicyGradient
-from pg_methods.utils.baselines import MovingAverageBaseline
+from pg_methods.baselines import MovingAverageBaseline, NeuralNetworkBaseline
+from pg_methods.networks import MLP_factory
+from pg_methods.utils import experiment
 
 parser = argparse.ArgumentParser(description='REINFORCE')
 parser.add_argument('--env_name', type=str, default='CartPole-v0')
@@ -18,80 +23,72 @@ parser.add_argument('--n_episodes', type=int, default=5000,
                     help='number of episodes')
 parser.add_argument('--n_replicates', type=int, default=4, 
                     help='number of replicates')
-parser.add_argument('--baseline', type=str, default='compare',
-                    help='choose one of: compare, moving_average, none')
+parser.add_argument('--baseline', type=str, default='moving_average',
+                    help='choose one of: none, moving_average, neural_network')
 parser.add_argument('--cpu_count', type=int, default=3,
                     help='number of cpus to use')
+parser.add_argument('--policy_lr', type=float, default=0.001,
+                    help='learning rate for the policy')
+parser.add_argument('--policy', type=str, default='multinomial',
+                    help='one of (multinomial, gaussian')
+parser.add_argument('--value_lr', type=float, default=0.001,
+                    help='learning rate for the value function.')
+parser.add_argument('--n_hidden_layers', default=1,
+                    help='Number of hidden layers to use', type=int)
 parser.add_argument('--plot', action='store_true', default=False)
+parser.add_argument('--name', default='')
 args = parser.parse_args()
 
 torch.manual_seed(args.seed)
 
 EPOCHS = args.n_episodes
 
-env = interfaces.make_parallelized_gym_env('CartPole-v0', args.seed, args.cpu_count)
+env = interfaces.make_parallelized_gym_env(args.env_name, args.seed, args.cpu_count)
 
 torch.manual_seed(args.seed)
 np.random.seed(args.seed)
 
+folder_name = args.env_name
+algorithm_name = 'VPG' if args.name == '' else 'VPG_' + args.name
+
+experiment_logger = experiment.Experiment({'algorithm_name': algorithm_name}, os.path.join('./', folder_name))
+experiment_logger.start()
+
+hidden_sizes = [16] * args.n_hidden_layers
+
 for replicate in range(args.n_replicates):
 
-    approximator = MLP_factory(env.observation_space_info['shape'][0],
-                               [32, 32],
-                               output_size=env.action_space_info['possible_values'],
-                               hidden_non_linearity=nn.ReLU)
-    policy = MultinomialPolicy(approximator)
+    if args.baseline == 'moving_average':
+        baseline = MovingAverageBaseline(0.9)
+    elif args.baseline == 'neural_network':
+        val_approximator = MLP_factory(env.observation_space_info['shape'][0],
+                                       [16, 16],
+                                       output_size=1,
+                                       hidden_non_linearity=nn.ReLU)
+        val_optimizer = torch.optim.SGD(val_approximator.parameters(), lr=args.value_lr)
+        baseline = NeuralNetworkBaseline(val_approximator, val_optimizer, bootstrap=False)
+    else:
+        baseline = None
 
-    optimizer = torch.optim.RMSprop(approximator.parameters(), lr=0.001)
+    fn_approximator, policy = experiment.setup_policy(env, hidden_non_linearity=nn.ReLU, hidden_sizes=[16, 16])
 
-    algorithm = VanillaPolicyGradient(env, policy, optimizer, baseline=MovingAverageBaseline(0.9))
+    optimizer = torch.optim.SGD(fn_approximator.parameters(), lr=args.policy_lr)
+
+    algorithm = VanillaPolicyGradient(env, policy, optimizer, gamma=args.gamma, baseline=baseline)
 
     rewards, losses = algorithm.run(EPOCHS, verbose=True)
 
-    np.save('rewards_vpg_{}.npy'.format(replicate), np.array(rewards))
+    experiment_logger.log_data('rewards', rewards.tolist())
+    experiment_logger.save()
+
 
 if args.plot:
-    import numpy as np
-    from glob import glob
-    import seaborn
-    import matplotlib.pyplot as plt
-
-    seaborn.set_color_codes('colorblind')
-    seaborn.set_style('white')
-
-    rewards = list(map(np.load, glob('./rewards_vpg_*.npy')))
-    # rewards_no_baseline = list(map(np.load, glob('./rewards_no_baseline_*.npy')))
-
-
-    def downsample(array, step=50):
-        to_return = []
-        steps = []
-        for i in range(0, array.shape[0], step):
-            to_return.append(array[i])
-            steps.append(i)
-
-        return np.array(steps), np.array(to_return)
-
-    rewards = list(map(downsample, rewards))
-
-
-    def plot_rewards(ax, rewards_list, label, color):
-        for episode_count, reward_curve in rewards_list:
-            ax.plot(episode_count, reward_curve, c=color, alpha=0.2)
-        episode_count, rewards = list(zip(*rewards_list))
-        episode_count = episode_count[0]
-        ax.plot(episode_count, np.array(rewards).mean(axis=0), c=color,
-                label=label + ' (n={})'.format(len(rewards_list)))
-
-
     fig = plt.figure()
+    sns.set_style('white')
+    sns.set_context('paper', font_scale=1.5)
     ax = fig.add_subplot(111)
-    plot_rewards(ax, rewards, 'VPG', 'r')
-    # plot_rewards(ax, rewards_no_baseline, 'no baseline', 'b')
-    ax.set_xlabel('Episodes')
-    ax.set_ylabel('Reward')
-    ax.set_title('{} - Vanilla Policy Gradient'.format(args.env_name))
-    ax.legend()
-    seaborn.despine()
+    experiment_logger.plot('rewards', ax=ax)
+    sns.despine()
 
-    fig.savefig('vpg_curve.pdf', dpi=300)
+    fig.savefig(os.path.join(experiment_logger.log_dir, experiment_logger.algorithm_details['algorithm_name']+'.pdf'))
+

@@ -1,11 +1,16 @@
-from pg_methods.utils.data import obtain_trajectories
-from pg_methods.utils.interfaces import make_parallelized_gym_env, PyTorchWrapper
+from pg_methods.data import obtain_trajectories
+from pg_methods.interfaces import (make_parallelized_gym_env,
+                                   PyTorchWrapper,
+                                   SimpleDiscreteProcessor,
+                                   ContinuousProcessor)
 import torch
 from torch.autograd import Variable
 import gym
 import numpy as np
 
-env = make_parallelized_gym_env('CartPole-v0', 1, 2)
+env = make_parallelized_gym_env('CartPole-v0', 1, 2,
+                                observation_processor=ContinuousProcessor(),
+                                action_processor=SimpleDiscreteProcessor())
 
 def dumb_policy(state):
     return Variable(torch.IntTensor([[0], [1]])), Variable(torch.FloatTensor([[0.006], [0.001]]))
@@ -18,6 +23,7 @@ def test_obtain_trajectories_max_steps():
     env.reset()
 
     trajectory = obtain_trajectories(env, dumb_policy, 4)
+    print(trajectory.states)
     trajectory.torchify()
     assert trajectory.rewards.size()[0] == 4, "check if step size limitation is being maintained"
     assert np.all(trajectory.dones[-1].numpy() == 0), "make sure we actually dont have any dones"

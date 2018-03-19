@@ -1,6 +1,6 @@
 import torch
 from torch.autograd import Variable
-from pg_methods.utils import interfaces
+from . import interfaces
 
 def calculate_returns(rewards, discount, masks=None):
     """

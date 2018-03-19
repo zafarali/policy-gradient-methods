@@ -74,8 +74,7 @@ class GaussianPolicy(Policy):
     ```
     """
     def forward(self, state):
-        nn_output = self.fn_approximator(state)
-        policy_mu, policy_sigma = nn_output[:, 0], nn_output[:, 1]
+        policy_mu, policy_sigma = self.fn_approximator(state)
         policy_sigma = F.softplus(policy_sigma)
 
         stochastic_policy = Normal(policy_mu, policy_sigma)

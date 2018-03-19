@@ -23,10 +23,10 @@ class Trajectory(object):
         self.transitions.append(Transition(state_t, action, reward, state_tp1))
         
         if len(self.states) == 0:
-            self.states.extend(state_t.data.tolist())
+            self.states.extend(state_t if isinstance(state_t, (int, float)) else state_t.tolist())
 
-        self.states.extend(state_tp1.data.tolist())
-        self.actions.append(action.data.tolist())
+        self.states.extend(state_tp1 if isinstance(state_tp1, (int, float)) else state_tp1.tolist())
+        self.actions.append(action if isinstance(action, (int, float)) else action.tolist())
         self.rewards.append(reward)
         self.values.append(float(baseline))
         self.log_probs.append(log_prob)
