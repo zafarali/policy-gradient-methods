@@ -2,7 +2,8 @@ import gym
 import torch
 from torch.autograd import Variable
 import numpy as np
-import pg_methods.utils.interfaces.common_interfaces as common
+from . import common_interfaces as common
+
 
 class SimpleStateProcessor(common.Interface):
     """

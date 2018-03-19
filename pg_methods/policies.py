@@ -74,8 +74,7 @@ class GaussianPolicy(Policy):
     ```
     """
     def forward(self, state):
-        nn_output = self.fn_approximator(state)
-        policy_mu, policy_sigma = nn_output[:, 0], nn_output[:, 1]
+        policy_mu, policy_sigma = self.fn_approximator(state)
         policy_sigma = F.softplus(policy_sigma)
 
         stochastic_policy = Normal(policy_mu, policy_sigma)
@@ -116,7 +115,7 @@ class BernoulliPolicy(Policy):
             logging.debug('State was: {}'.format(state))
             logging.debug('Function approximator return was: {}'.format(self.fn_approximator(state)))
             logging.debug('This has occured before when parameters of the network became NaNs.')
-            loggin.debug('Check learning rate, or change eps in adaptive gradient descent methods.')
+            logging.debug('Check learning rate, or change eps in adaptive gradient descent methods.')
             raise RuntimeError('BernoulliPolicy returned nan information. Logger level with DEBUG will have more '
                                'information')
         return actions, log_probs

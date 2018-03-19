@@ -1,4 +1,3 @@
-import torch
 import torch.nn as nn
 from collections import OrderedDict
 
@@ -14,8 +13,6 @@ def MLP_factory(input_size,
     :param output_size: an int for the size of the output
     :param non_linearity: the non-linearity to use (must be a nn.Module)
     """
-    # if type(hidden_sizes) is int:
-    #     hidden_sizes = [ hidden_sizes for _ in range(n_layers) ]    
     
     assert type(hidden_sizes) is list
     layers = []
@@ -45,4 +42,40 @@ def MLP_factory(input_size,
             out_non_linearity())
         )
     return nn.Sequential(OrderedDict(layers))
+
+class TwoHeadNetwork(nn.Module):
+    def __init__(self, shared_body, head_in, head_out):
+        super().__init__()
+        self.shared_body = shared_body
+        self.first_head = nn.Linear(head_in, head_out)
+        self.second_head = nn.Linear(head_in, head_out)
+
+    def forward(self, x):
+        intermediate_representation = self.shared_body(x)
+        first_out = self.first_head(intermediate_representation)
+        second_out = self.second_head(intermediate_representation)
+
+        return first_out, second_out
+
+def MLP_factory_two_heads(input_size,
+                          hidden_sizes=[],
+                          output_size=1,
+                          hidden_non_linearity=None,
+                          out_non_linearity=None):
+    """
+    Creates a neural network with two heads and a shared body
+    :param input_size:
+    :param hidden_sizes:
+    :param output_size:
+    :param hidden_non_linearity:
+    :param out_non_linearity:
+    :return:
+    """
+    shared_body = MLP_factory(input_size,
+                              hidden_sizes[:-1],
+                              output_size=hidden_sizes[-1],
+                              hidden_non_linearity=hidden_non_linearity,
+                              out_non_linearity=out_non_linearity)
+
+    return TwoHeadNetwork(shared_body, hidden_sizes[-1], output_size)
 

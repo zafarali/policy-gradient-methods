@@ -1,4 +1,4 @@
-from pg_methods.utils.gradients import calculate_returns, calculate_policy_gradient_terms
+from pg_methods.gradients import calculate_returns, calculate_policy_gradient_terms
 import numpy as np
 import torch
 

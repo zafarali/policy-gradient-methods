@@ -37,13 +37,19 @@ def obtain_trajectories_single_env(environment,
         action, log_prob = policy(state_t)
 
         if verbose: print('Action taken: {}'.format(action))
-        
+        if isinstance(action, torch.autograd.Variable):
+            action = action.data
+
+        action = action.cpu()
+        if action.size() == (1, 1):
+            action = action[0] # is a list with one element, this allows it to work with OneHot Processors
+
         state_tp1, reward, done, info = environment.step(action)
         
         if verbose: print('State: {}, reward: {}, done {}'.format(state_tp1, reward, done))
         
         baseline = value_function(state_t) if value_function is not None else 0
-        trajectory.append(state_t, action, reward, baseline, log_prob, state_tp1, done)
+        trajectory.append(state_t.data, action, reward, baseline, log_prob, state_tp1.data, done)
 
         state_t = state_tp1
 
