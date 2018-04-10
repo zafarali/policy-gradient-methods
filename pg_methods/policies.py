@@ -36,8 +36,8 @@ class RandomPolicy(Policy):
         log_probs = stochastic_policy.log_prob(actions)
         return actions, log_probs
 
-
-class MultinomialPolicy(Policy):
+# TODO: change this to categorical policy
+class CategoricalPolicy(Policy):
     """
     Used to pick from a range of actions.
     ```
@@ -64,6 +64,11 @@ class MultinomialPolicy(Policy):
         probs = F.softmax(policy_log_probs, dim=1)
         stochastic_policy = Categorical(probs)
         return stochastic_policy.log_prob(action)
+
+class MultinomialPolicy(CategoricalPolicy):
+    def __init__(self, fn_approximator):
+        super().__init__(fn_approximator)
+        logging.warning('Use `CategoricalPolicy` since `MultinomialPolicy` will soon be deprecated.')
 
 class GaussianPolicy(Policy):
     """

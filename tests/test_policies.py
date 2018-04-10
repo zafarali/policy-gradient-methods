@@ -4,17 +4,17 @@ from torch.autograd import Variable
 import pg_methods.policies as policies
 from pg_methods.networks import MLP_factory, MLP_factory_two_heads
 
-def test_multinomial_policy():
+def test_categorial_policy():
     fn_approximator = MLP_factory(input_size=4, output_size=3)
-    policy = policies.MultinomialPolicy(fn_approximator)
+    policy = policies.CategoricalPolicy(fn_approximator)
 
     action, log_prob = policy(Variable(torch.randn(1, 4), volatile=True))
     assert type(action.data[0]) is int
     assert log_prob.data[0] <= np.log(1)
 
-def test_multinomial_policy_batched():
+def test_categorial_policy_batched():
     fn_approximator = MLP_factory(input_size=4, output_size=3)
-    policy = policies.MultinomialPolicy(fn_approximator)
+    policy = policies.CategoricalPolicy(fn_approximator)
 
     action, log_prob = policy(Variable(torch.randn(10, 4), volatile=True))
 

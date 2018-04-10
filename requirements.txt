@@ -1,0 +1,7 @@
+http://download.pytorch.org/whl/cu80/torch-0.3.0.post4-cp36-cp36m-linux_x86_64.whl
+torchvision
+gym==0.9.4
+matplotlib
+scipy
+seaborn
+pytest==3.0.7
