@@ -65,7 +65,6 @@ class MultiTrajectory(Trajectory):
 
         if len(self.states) == 0:
             self.states.append(state_t)
-        
         self.dones.append(dones)
         self.states.append(state_tp1)
         self.actions.append(action)
@@ -80,5 +79,18 @@ class MultiTrajectory(Trajectory):
         self.rewards = torch.stack(self.rewards).view(trajectory_length, self.n_envs, -1)
         self.values = torch.stack(self.values).view(trajectory_length, self.n_envs, -1)
         self.log_probs = torch.stack(self.log_probs).view(trajectory_length, self.n_envs, -1)
+
+        # doing "mask correction" here.
+        # this is because when a done is first appended into the storage
+        # we assume that the reward also appended is "observed" and so should not be masked.
+        # this is a temporary operation (see if there is a better way to do this)
+        # and what it does it shifts all the dones by one row
+        # so that the masks correspond correctly.
+        self.dones.insert(0, self.dones[0])
+        popped_dones = self.dones.pop(-1)
+        self.masks = 1 - torch.stack(self.dones).view(trajectory_length, self.n_envs, -1)
+
+        # reversing the "mask correction"
+        self.dones.pop(0)
+        self.dones.append(popped_dones)
         self.dones = torch.stack(self.dones).view(trajectory_length, self.n_envs, -1)
-        self.masks = 1 - self.dones
