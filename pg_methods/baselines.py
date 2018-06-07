@@ -5,6 +5,7 @@ import torch
 from torch.autograd import Variable
 import numpy as np
 import logging
+import copy
 
 class Baseline(object):
     optimizer = None
@@ -61,7 +62,7 @@ class FunctionApproximatorBaseline(Baseline):
         self.fn_approximator = fn_approximator
         self.optimizer = optimizer
 
-    def update_baseline(self, trajectory, returns):
+    def update_baseline(self, trajectory, returns, tro=False):
         """
 
         :param trajectory:
@@ -94,7 +95,25 @@ class FunctionApproximatorBaseline(Baseline):
         if self.optimizer is not None:
             self.optimizer.zero_grad()
             loss.backward()
-            self.optimizer.step()
+
+            # TRO Constraint
+
+            if tro:
+                sigma_2 = loss/traj_len
+                model_new = copy.deepcopy(self.fn_approximator)
+                optim = torch.optim.RMSprop(model_new.parameters(), lr=1e-5)
+                optim.step()
+
+                value_estimates_new = model_new(current_states)
+
+                diff = (value_estimates_new - value_estimates)**2
+                diff = torch.mean(diff*Variable(trajectory.masks.view_as(diff).float()))
+                diff = diff/(2*sigma_2)
+
+                if diff.data.numpy()[0] < 1e-10: # TODO: See if any alternative to hardcoding epsilon
+                    self.optimizer.step()
+            else:
+                self.optimizer.step()
 
         return loss
 

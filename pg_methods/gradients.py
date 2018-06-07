@@ -48,6 +48,24 @@ def calculate_advantages(rewards, discount, baselines=None):
 
     return interfaces.list2pytorch(advantage)
 
+
+def calculate_gae(rewards, values, discount, tau):
+    assert discount <= 1 and discount >= 0, 'discount is out of allowable range'
+    assert tau <= 1 and tau >= 0, 'bias control(tau) is out of allowable range'
+    trajectory_length = len(rewards) - 1
+    advantages = []
+
+    gae = 0
+
+    for t in reversed(range(trajectory_length)):
+        delta_t = rewards[t] + discount * values[t+1] - values[t]
+        gae = gae * discount * tau + delta_t
+
+        advantages.insert(0, gae)
+
+    return interfaces.list2pytorch(advantages)
+
+
 def calculate_policy_gradient_terms(log_probs, advantage):
     # sum over the time dimension and then mean over the batch dimension
     # to get the MC samples
@@ -56,7 +74,7 @@ def calculate_policy_gradient_terms(log_probs, advantage):
     if not isinstance(advantage, Variable):
         advantage = Variable(advantage)
 
-    return -log_probs * advantage
+    return -log_probs.float() * advantage.float()
 
 def get_entropy(log_probs):
     """
