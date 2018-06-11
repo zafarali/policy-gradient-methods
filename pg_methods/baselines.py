@@ -64,10 +64,11 @@ class FunctionApproximatorBaseline(Baseline):
 
     def update_baseline(self, trajectory, returns, tro=False):
         """
+        Function to update the baseline function approximator
 
         :param trajectory:
         :param returns:
-        :return:
+        :tro: Use Trust Region Optimization for value function update (ref: https://arxiv.org/pdf/1506.02438.pdf)
         """
         # handle MultiTrajectory vs Trajectory
         # for backwards compatability, # TODO: might want to remove this in the future
