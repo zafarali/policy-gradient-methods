@@ -49,7 +49,16 @@ def calculate_advantages(rewards, discount, baselines=None):
     return interfaces.list2pytorch(advantage)
 
 
-def calculate_gae(rewards, values, discount, tau):
+def calculate_gae(rewards, values, discount, tau, masks=None):
+    """
+    Calculate the generalized advantages of the rewards
+    :param rewards: a list of rewards
+    :param values: a list of returns approximated using value function at each state
+    :param discount: discount factor
+    :param tau: lambda parameter for generalized advantage estimation
+    :param masks: will use the mask to take into account future rewards
+    :return list: containing generalized advantages for each step in the trajectory
+    """
     assert discount <= 1 and discount >= 0, 'discount is out of allowable range'
     assert tau <= 1 and tau >= 0, 'bias control(tau) is out of allowable range'
     trajectory_length = len(rewards) - 1
