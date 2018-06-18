@@ -5,6 +5,7 @@ import numpy as np
 import torch.nn as nn
 import torch
 import os
+import gc
 import matplotlib.pyplot as plt
 import seaborn as sns
 from pg_methods import interfaces
@@ -91,4 +92,7 @@ if args.plot:
     sns.despine()
 
     fig.savefig(os.path.join(experiment_logger.log_dir, experiment_logger.algorithm_details['algorithm_name']+'.pdf'))
+    fig.clf()
+    plt.close()
+    gc.collect()
 
