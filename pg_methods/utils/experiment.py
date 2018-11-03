@@ -1,12 +1,12 @@
 """
 Code here is used to store experimental results as well as helper functions to set up experiments
 """
-from collections import defaultdict
-from . import plotting
-from ..networks import MLP_factory_two_heads, MLP_factory
-from ..policies import GaussianPolicy, MultinomialPolicy
 import os
 import json
+from collections import defaultdict
+from pg_methods.utils import plotting
+from pg_methods.networks import MLP_factory_two_heads, MLP_factory
+from pg_methods.policies import GaussianPolicy, CategoricalPolicy
 
 class AlgorithmDetails(object):
     """
@@ -121,7 +121,7 @@ def setup_policy(env, hidden_sizes=[16], hidden_non_linearity=None):
                                    hidden_sizes,
                                    output_size=output_size,
                                    hidden_non_linearity=hidden_non_linearity)
-        policy = MultinomialPolicy(approximator)
+        policy = CategoricalPolicy(approximator)
 
     else:
         raise ValueError('Unknown action space type {}!'.format(env.action_space_info['type']))

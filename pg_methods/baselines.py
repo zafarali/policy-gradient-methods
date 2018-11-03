@@ -1,11 +1,10 @@
 """
 Implements some common baselines
 """
-import torch
-from torch.autograd import Variable
-import numpy as np
 import logging
 import copy
+
+import torch
 
 class Baseline(object):
     optimizer = None
@@ -83,7 +82,6 @@ class FunctionApproximatorBaseline(Baseline):
 
         # get the value prediction for these states
         value_estimates = self.fn_approximator(current_states)
-        if not isinstance(returns, Variable): returns = Variable(returns)
 
         # take the difference between the returns actually observed
         # reshape so that it is batch x returns
@@ -91,7 +89,7 @@ class FunctionApproximatorBaseline(Baseline):
         loss = (returns - value_estimates)**2
 
         # apply masks for terminated trajectories
-        loss = torch.mean(loss*Variable(trajectory.masks.view_as(loss).float()))
+        loss = torch.mean(loss*trajectory.masks.view_as(loss).float())
 
         if self.optimizer is not None:
             self.optimizer.zero_grad()
@@ -119,7 +117,7 @@ class FunctionApproximatorBaseline(Baseline):
         return loss
 
     def __call__(self, state):
-        value_estimate = self.fn_approximator(state).data
+        value_estimate = self.fn_approximator(state).detach()
         return value_estimate
     def __str__(self):
         return 'FunctionApproximatorBaseline()'

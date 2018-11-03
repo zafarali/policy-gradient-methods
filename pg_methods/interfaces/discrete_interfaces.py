@@ -4,7 +4,8 @@ from OpenAI gym.
 """
 import torch
 import numpy as np
-from . import common_interfaces as common
+
+from pg_methods.interfaces import common_interfaces as common
 
 class SimpleDiscreteProcessor(common.Interface):
     def gym2pytorch(self, gym_representation):
@@ -58,7 +59,11 @@ class OneHotProcessor(common.Interface):
         :return:
         """
         if self.action_processor:
-            return pytorch_representation[0]
+            try:
+                # TODO(zafarali): Look for a way to make this less hacky.
+                return pytorch_representation[0].item()
+            except AttributeError:
+                return pytorch_representation[0]
         if not numpy:
             return np.argmax(pytorch_representation.numpy())
         else:

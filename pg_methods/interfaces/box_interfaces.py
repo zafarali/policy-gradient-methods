@@ -1,10 +1,10 @@
 """
-Code to interace with Box action and state spaces
-from OpenAI gym.
+Code to interace with Box action and state spaces from OpenAI gym.
 """
 import torch
 import numpy as np
-from . import common_interfaces as common
+
+from pg_methods.interfaces import common_interfaces as common
 
 class ContinuousProcessor(common.Interface):
     """
