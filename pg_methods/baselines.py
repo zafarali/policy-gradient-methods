@@ -6,6 +6,8 @@ import copy
 
 import torch
 
+import torch
+
 class Baseline(object):
     optimizer = None
     def update_baseline(self, trajectory, returns=None):
