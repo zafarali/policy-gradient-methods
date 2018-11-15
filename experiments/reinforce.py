@@ -6,6 +6,7 @@ import argparse
 import numpy as np
 import torch.nn as nn
 import torch
+import gc
 from pg_methods.utils.networks import MLP_factory
 from pg_methods.utils.policies import MultinomialPolicy, BernoulliPolicy
 from pg_methods.utils import interfaces
@@ -122,3 +123,6 @@ if args.baseline == 'compare':
     seaborn.despine()
 
     fig.savefig('reward_curves_comparison.pdf', dpi=300)
+    fig.clf()
+    plt.close()
+    gc.collect()

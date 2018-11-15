@@ -40,7 +40,7 @@ def check_state_details(state):
     :return:
     """
     print(state)
-    assert type(state) is Variable
+    assert isinstance(state, torch.Tensor)
     assert len(state.size()) == 2
     assert state.size()[0] == 1
     return True
@@ -69,8 +69,8 @@ def test_single_env_discrete_state_one_hot_discrete_actions():
     state = env.reset()
     assert check_state_details(state)
     assert state.size()[1] == env.observation_space.n
-    assert state[0, 0].data[0] == 1
-    assert state[0, 1:].sum().data[0] == 0
+    assert state[0, 0].item() == 1
+    assert state[0, 1:].sum().item() == 0
     action, log_probs = get_multinomial_action(state, env.action_space.n)
     assert check_state_details(env.step(action)[0])
 
@@ -86,31 +86,31 @@ def test_multi_env_continous_state_discrete_actions():
     env = make_parallelized_gym_env('CartPole-v0', 0, 2, action_processor=SimpleDiscreteProcessor())
     state = env.reset()
     assert tuple(state.size()) == (2, 4)
-    assert type(state) is Variable
+    assert isinstance(state, torch.Tensor)
     action, log_probs = get_multinomial_action(state, env.action_space.n)
     state, _, _, _ = env.step(action)
-    assert type(state) is Variable
+    assert isinstance(state, torch.Tensor)
     assert tuple(state.size()) == (2, 4)
 
 def test_multi_env_continous_state_continous_actions():
     env = make_parallelized_gym_env('MountainCarContinuous-v0', 0, 2)
     state = env.reset()
     action, log_probs = get_gaussian_action(state, env.action_space.shape[0])
-    assert type(state) is Variable
+    assert isinstance(state, torch.Tensor)
     assert tuple(state.size()) == (2, 2)
     state, _, _, _ = env.step(action)
-    assert type(state) is Variable
+    assert isinstance(state, torch.Tensor)
     assert tuple(state.size()) == (2, 2)
 
 def test_multi_env_one_hot_state_one_hot_actions():
     env = make_parallelized_gym_env('FrozenLake-v0',0, 2)
     state = env.reset()
     assert state.size() == (2, env.observation_space.n)
-    assert type(state) is Variable
+    assert isinstance(state, torch.Tensor)
     actions, log_probs = get_multinomial_action(state, env.action_space.n)
     assert actions.size() == (2,)
     state, _, _, _ = env.step(actions)
-    assert type(state) is Variable
+    assert isinstance(state, torch.Tensor)
     assert state.size() == (2, env.observation_space.n)
 
 def test_multi_env_continous_states_multiple_continous_actions():
@@ -120,10 +120,10 @@ def test_multi_env_continous_states_multiple_continous_actions():
         env = make_parallelized_gym_env('RoboschoolHumanoid-v1', 0, 2)
         state = env.reset()
         action, log_probs = get_gaussian_action(state, env.action_space.shape[0])
-        assert type(state) is Variable
+        assert isinstance(state, torch.Tensor)
         assert tuple(state.size()) == (2, env.observation_space.shape[0])
         state, _, _, _ = env.step(action)
-        assert type(state) is Variable
+        assert isinstance(state, torch.Tensor)
         assert tuple(state.size()) == (2, env.observation_space.shape[0])
     except ImportError:
         logging.warning('No roboschool was installed therefore `test_multi_env_continous_states_multiple_continous_actions` could not be run')

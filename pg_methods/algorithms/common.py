@@ -1,4 +1,4 @@
-from ..objectives import PolicyGradientObjective
+from pg_methods.objectives import PolicyGradientObjective
 
 class Algorithm(object):
     def __init__(self, environment, policy, objective=PolicyGradientObjective(), logger=None, use_cuda=False):

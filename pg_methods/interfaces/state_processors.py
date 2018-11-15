@@ -1,8 +1,7 @@
 import gym
 import torch
-from torch.autograd import Variable
 import numpy as np
-from . import common_interfaces as common
+from pg_methods.interfaces import common_interfaces as common
 
 
 class SimpleStateProcessor(common.Interface):
@@ -38,7 +37,7 @@ class SimpleStateProcessor(common.Interface):
         if self.one_hot and not self.continous:
             state = np.zeros(self.state_size)
             state[self.state_idx] = 1
-            state = Variable(torch.from_numpy(state.reshape(1, -1)))
+            state = torch.from_numpy(state.reshape(1, -1))
             if self.use_cuda:
                 return state.float().cuda()
             else:
@@ -46,9 +45,9 @@ class SimpleStateProcessor(common.Interface):
         else:
             state = None
             if not self.continous:
-                state = Variable(torch.from_numpy(np.array([state_idx]).reshape(1, -1)))
+                state = torch.from_numpy(np.array([state_idx]).reshape(1, -1))
             else:
-                state = Variable(torch.from_numpy(np.array(state_idx).reshape(1, -1)))
+                state = torch.from_numpy(np.array(state_idx).reshape(1, -1))
                 if self.normalize:
                     state = state / self.max_obs
 

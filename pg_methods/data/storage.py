@@ -1,6 +1,7 @@
 import sys
-import torch
 from collections import namedtuple
+
+import torch
 
 # is this efficient?
 Transition = namedtuple('Transition', 'state action reward next_state')

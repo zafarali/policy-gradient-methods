@@ -1,14 +1,14 @@
 """
-Here we implement some simple policies that 
-one can use directly in simple tasks. 
+Here we implement some simple policies that
+one can use directly in simple tasks.
 More complicated policies can also be created
 by inheriting from the Policy class
 """
+import logging
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.autograd import Variable
-import logging
 from torch.distributions import Categorical, Normal, Bernoulli
 
 class Policy(nn.Module):
@@ -30,13 +30,12 @@ class RandomPolicy(Policy):
 
     def forward(self, state):
         batch_size = state.size()[0]
-        probs = Variable(torch.ones(batch_size, self.output_dim)/self.output_dim)
+        probs = torch.ones(batch_size, self.output_dim) / self.output_dim
         stochastic_policy = Categorical(probs)
         actions = stochastic_policy.sample()
         log_probs = stochastic_policy.log_prob(actions)
         return actions, log_probs
 
-# TODO: change this to categorical policy
 class CategoricalPolicy(Policy):
     """
     Used to pick from a range of actions.
@@ -47,7 +46,7 @@ class CategoricalPolicy(Policy):
     ```
     """
     def forward(self, state):
-        policy_log_probs = self.fn_approximator(state) 
+        policy_log_probs = self.fn_approximator(state)
         probs = F.softmax(policy_log_probs, dim=1)
         stochastic_policy = Categorical(probs)
 
@@ -95,14 +94,14 @@ class GaussianPolicy(Policy):
 
 class BernoulliPolicy(Policy):
     """
-    Used to take binary actions. 
+    Used to take binary actions.
     This can also be used when each action consists of
     a many binary actions, for example:
-    
+
     ```
     fn_approximator = MLP_factory(input_size=4, output_size=5)
     policy = policies.BernoulliPolicy(fn_approximator)
-    ```    
+    ```
     this will result in each action being composed of 5 binary actions.
     """
     def forward(self, state):

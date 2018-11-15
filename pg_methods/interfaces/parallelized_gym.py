@@ -1,22 +1,24 @@
-import gym
-import numpy as np
-try:
-    import roboschool
-except ImportError as e:
-    print('Roboschool not installed. ')
-import torch
-from torch.autograd import Variable
-from torch.multiprocessing import Process, Pipe
-import logging
-from .wrappers import infer_space_information
-from .discrete_interfaces import OneHotProcessor, SimpleDiscreteProcessor
-from .box_interfaces import ContinuousProcessor
-from .common_interfaces import NUMBERS, number_convert
 """
 Code to parallelize gym environments obtained from
 https://github.com/openai/baselines/blob/b5be53dc928bc19c39bce2a3f8a4e7dd0374f1dd/baselines/common/vec_env/subproc_vec_env.py
 It has been modified to deal with PyTorch Tensors and Variables.
 """
+import logging
+
+try:
+    import roboschool
+except ImportError as e:
+    print('Roboschool not installed. ')
+import torch
+from torch.multiprocessing import Process, Pipe
+import gym
+
+from pg_methods.interfaces.wrappers import infer_space_information
+from pg_methods.interfaces.discrete_interfaces import OneHotProcessor, SimpleDiscreteProcessor
+from pg_methods.interfaces.box_interfaces import ContinuousProcessor
+from pg_methods.interfaces.common_interfaces import NUMBERS, number_convert
+
+CPU = torch.device('cpu')
 
 class VecEnv(object):
     """
@@ -162,10 +164,9 @@ class SubprocVecEnv(VecEnv):
         """
         Execute a list of actions in each environment
         """
-        if isinstance(actions, torch.autograd.Variable):
-            actions = actions.data
 
-        actions = actions.cpu()
+
+        actions = actions.to(CPU)
 
         for remote, action in zip(self.remotes, actions.tolist()):
             # convert action to gym and execute it in the environment
@@ -206,14 +207,26 @@ class SubprocVecEnv(VecEnv):
             remote.send(('reset', None))
         self.reset_dones()
         # handle one hot encoding here
-        self.state = self.variable_wrap(torch.stack([self.observation_processor.gym2pytorch(remote.recv()).view(-1) for remote in self.remotes]))
+        observations = []
+        for remote in self.remotes:
+            observation_recv = self.observation_processor.gym2pytorch(remote.recv()).view(-1)
+            observations.append(observation_recv)
+        self.state = self.variable_wrap(torch.stack(observations))
         return self.state
+
+    def reset_done_envs(self):
+        for env_done, remote in zip(self.dones, self.remotes):
+            if env_done:
+                remote.send(('reset', None))
+        # We have reset the environments that are done:
+        self.reset_dones()
+        # TODO(zaf): Needs more work to ensure we return observations here.
 
     def variable_wrap(self, tensor):
         if self.use_cuda:
-            return Variable(tensor).cuda()
+            return tensor.cuda()
         else:
-            return Variable(tensor)
+            return tensor
 
     def reset_task(self):
         """
@@ -222,7 +235,10 @@ class SubprocVecEnv(VecEnv):
         for remote in self.remotes:
             remote.send(('reset_task', None))
         self.reset_dones()
-        return self.variable_wrap(torch.stack([self.observation_processor.gym2pytorch(remote.recv()).view(-1) for remote in self.remotes]))
+        observations = []
+        for remote in self.remotes:
+            observations.append(self.observation_processor.gym2pytorch(remote.recv()).view(-1))
+        return self.variable_wrap(torch.stack(observations))
 
     def close(self):
         """

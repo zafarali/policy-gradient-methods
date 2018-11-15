@@ -1,5 +1,7 @@
-from .common_interfaces import list2pytorch, pytorch2array, pytorch2list
-from .box_interfaces import ContinuousProcessor
-from .discrete_interfaces import SimpleDiscreteProcessor, OneHotProcessor
-from .parallelized_gym import make_parallelized_gym_env
-from .wrappers import PyTorchWrapper
+from pg_methods.interfaces.common_interfaces import (
+    list2pytorch, pytorch2array, pytorch2list)
+from pg_methods.interfaces.box_interfaces import ContinuousProcessor
+from pg_methods.interfaces.discrete_interfaces import (
+    SimpleDiscreteProcessor, OneHotProcessor)
+from pg_methods.interfaces.parallelized_gym import make_parallelized_gym_env
+from pg_methods.interfaces.wrappers import PyTorchWrapper

@@ -1,11 +1,12 @@
 """
 Contains functions and objects for data collection
 """
-import torch
 import sys
 import logging
-from torch.autograd import Variable
-from .storage import Transition, Trajectory, MultiTrajectory
+
+import torch
+
+from pg_methods.data.storage import Trajectory, MultiTrajectory
 
 def obtain_trajectories_single_env(environment,
                                    policy,
@@ -37,10 +38,6 @@ def obtain_trajectories_single_env(environment,
         action, log_prob = policy(state_t)
 
         if verbose: print('Action taken: {}'.format(action))
-        if isinstance(action, torch.autograd.Variable):
-            action = action.data
-
-        action = action.cpu()
         if action.size() == (1, 1):
             action = action[0] # is a list with one element, this allows it to work with OneHot Processors
 
@@ -49,7 +46,8 @@ def obtain_trajectories_single_env(environment,
         if verbose: print('State: {}, reward: {}, done {}'.format(state_tp1, reward, done))
         
         baseline = value_function(state_t) if value_function is not None else 0
-        trajectory.append(state_t.data, action, reward, baseline, log_prob, state_tp1.data, done)
+        trajectory.append(state_t.detach(), action, reward,
+                          baseline, log_prob, state_tp1.detach(), done)
 
         state_t = state_tp1
 
@@ -87,7 +85,8 @@ def obtain_trajectories_parallel_env(environment,
         if verbose: print('State: {}, reward: {}, done {}, info {}'.format(state_tp1.data, reward, done, info))
         
         value_estimate = value_function(state_t) if value_function is not None else torch.FloatTensor([[0]*environment.n_envs])
-        trajectory.append(state_t, action, reward, value_estimate, log_prob, state_tp1, info['trajectory_done'])
+        trajectory.append(state_t.detach(), action, reward, value_estimate,
+                          log_prob, state_tp1.detach(), info['trajectory_done'])
 
         state_t = state_tp1
 

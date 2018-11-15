@@ -2,14 +2,16 @@
 Implementation of the REINFORCE algorithm as found in Suttons book.
 """
 import sys
+import logging
+
 import numpy as np
 import torch
+from torch.nn.utils import clip_grad_norm_ as clip_grad_norm
+
 from pg_methods.algorithms.common import Algorithm
-from ...data import obtain_trajectories
-from ... import gradients
-from ...objectives import PolicyGradientObjective
-from torch.nn.utils import clip_grad_norm 
-import logging
+from pg_methods.data import obtain_trajectories
+from pg_methods import gradients
+from pg_methods.objectives import PolicyGradientObjective
 
 class VanillaPolicyGradient(Algorithm):
     def __init__(self,
@@ -86,13 +88,13 @@ class VanillaPolicyGradient(Algorithm):
             reward_summary = torch.sum(trajectories.rewards * trajectories.masks.float(), dim=0) 
             if i % 100 == 0 and verbose:
                 print('Episode {}/{}: loss {:3g} episode_reward {:3g}, average_value: {:3g}'.format(i, n_episodes,
-                                                                                                    loss.data[0],
+                                                                                                    loss.item(),
                                                                                                     reward_summary.mean(),
                                                                                                     trajectories.values.mean()))
                 print('Longest Trajectory {} / Individual rewards: {}'.format(trajectories.masks.sum(dim=0).max(),
                                                                               reward_summary.tolist()))
             rewards.append(torch.sum(trajectories.rewards, dim=0).mean())
-            losses.append(loss.data[0])
+            losses.append(loss.item())
             self.log(episode=i, returns=returns, reward=reward_summary.mean(), trajectory=trajectories)
         
         return np.array(rewards), losses
@@ -147,8 +149,8 @@ class REINFORCE(Algorithm):
             policy_loss = policy_loss.sum(dim=0).mean()
             if i % 100 == 0 and verbose:
                 probs = torch.exp(torch.stack(trajectory.log_probs))
-                entropy = (-(probs * probs.log()).sum()).data[0]
-                print('episode {}/{}: loss {} episode_reward {} policy entropy {:.2g}'.format(i, n_episodes, policy_loss.data[0], sum(trajectory.rewards)[0], entropy))
+                entropy = (-(probs * probs.log()).sum()).item()
+                print('episode {}/{}: loss {} episode_reward {} policy entropy {:.2g}'.format(i, n_episodes, policy_loss.item(), sum(trajectory.rewards)[0], entropy))
                 # print('baseline values: {}'.format(trajectory.baselines))
                 # print('step rewards: {}'.format(trajectory.rewards))
                 # print('advantages: {}'.format(advantages.data.tolist()))
@@ -161,7 +163,7 @@ class REINFORCE(Algorithm):
             if self.lr_scheduler is not None: self.lr_scheduler.step()
     
             rewards.append(sum(trajectory.rewards))
-            losses.append(policy_loss.data[0])
+            losses.append(policy_loss.item())
             self.log(episode=i, reward=sum(trajectory.rewards), trajectory=trajectory)
 
         return np.array(rewards), losses

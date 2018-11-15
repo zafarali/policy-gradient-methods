@@ -5,6 +5,7 @@ from glob import glob
 import os
 import matplotlib.pyplot as plt
 import math
+import gc
 import seaborn as sns
 from pg_methods.utils import experiment
 sns.set_style('white')
@@ -40,3 +41,6 @@ for i, environment in enumerate(environments):
     ax.legend(fontsize=6, loc='center right')
 fig.tight_layout()
 fig.savefig(os.path.join(args.folder, args.to_plot+'-'+args.name+'.pdf'))
+fig.clf()
+plt.close()
+gc.collect()

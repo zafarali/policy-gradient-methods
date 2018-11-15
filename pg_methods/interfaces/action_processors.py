@@ -4,11 +4,7 @@ A set of utilities to convert between pytorch and openai gym
 States.gym2pytorch - converts a gym state to a pytorch tensor of size (1, -1)
 Rewards.pytorch2gym - 
 """
-import gym
-import torch
-from torch.autograd import Variable
-import numpy as np
-from . import common_interfaces as common
+from pg_methods.interfaces import common_interfaces as common
 
 
 class SimpleActionProcessor(common.Interface):

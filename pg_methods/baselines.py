@@ -1,10 +1,12 @@
 """
 Implements some common baselines
 """
-import torch
-from torch.autograd import Variable
-import numpy as np
 import logging
+import copy
+
+import torch
+
+import torch
 
 class Baseline(object):
     optimizer = None
@@ -61,12 +63,13 @@ class FunctionApproximatorBaseline(Baseline):
         self.fn_approximator = fn_approximator
         self.optimizer = optimizer
 
-    def update_baseline(self, trajectory, returns):
+    def update_baseline(self, trajectory, returns, tro=False):
         """
+        Function to update the baseline function approximator
 
         :param trajectory:
         :param returns:
-        :return:
+        :param tro: Use Trust Region Optimization for value function update (ref: https://arxiv.org/pdf/1506.02438.pdf)
         """
         # handle MultiTrajectory vs Trajectory
         # for backwards compatability, # TODO: might want to remove this in the future
@@ -81,7 +84,6 @@ class FunctionApproximatorBaseline(Baseline):
 
         # get the value prediction for these states
         value_estimates = self.fn_approximator(current_states)
-        if not isinstance(returns, Variable): returns = Variable(returns)
 
         # take the difference between the returns actually observed
         # reshape so that it is batch x returns
@@ -89,17 +91,35 @@ class FunctionApproximatorBaseline(Baseline):
         loss = (returns - value_estimates)**2
 
         # apply masks for terminated trajectories
-        loss = torch.mean(loss*Variable(trajectory.masks.view_as(loss).float()))
+        loss = torch.mean(loss*trajectory.masks.view_as(loss).float())
 
         if self.optimizer is not None:
             self.optimizer.zero_grad()
             loss.backward()
-            self.optimizer.step()
+
+            # TRO Constraint
+
+            if tro:
+                sigma_2 = loss/traj_len
+                model_new = copy.deepcopy(self.fn_approximator)
+                optim = torch.optim.RMSprop(model_new.parameters(), lr=1e-5)
+                optim.step()
+
+                value_estimates_new = model_new(current_states)
+
+                diff = (value_estimates_new - value_estimates)**2
+                diff = torch.mean(diff*Variable(trajectory.masks.view_as(diff).float()))
+                diff = diff/(2*sigma_2)
+
+                if diff.data.numpy()[0] < 1e-10: # TODO: See if any alternative to hardcoding epsilon
+                    self.optimizer.step()
+            else:
+                self.optimizer.step()
 
         return loss
 
     def __call__(self, state):
-        value_estimate = self.fn_approximator(state).data
+        value_estimate = self.fn_approximator(state).detach()
         return value_estimate
     def __str__(self):
         return 'FunctionApproximatorBaseline()'

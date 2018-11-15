@@ -1,4 +1,4 @@
-from .. import gradients
+from pg_methods import gradients
 
 """
 Abstract classes to calculate the objective of an algorithm

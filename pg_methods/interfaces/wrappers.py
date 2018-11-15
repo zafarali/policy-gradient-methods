@@ -1,10 +1,9 @@
-import gym
-import numpy as np
-import torch
-from torch.autograd import Variable
 import logging
-from .discrete_interfaces import OneHotProcessor
-from .box_interfaces import ContinuousProcessor
+
+import gym
+
+from pg_methods.interfaces.discrete_interfaces import OneHotProcessor
+from pg_methods.interfaces.box_interfaces import ContinuousProcessor
 
 def infer_space_information(space):
     if isinstance(space, gym.spaces.Discrete):
@@ -68,9 +67,9 @@ class PyTorchWrapper(gym.Wrapper):
 
     def variable_wrap(self, tensor):
         if self.use_cuda:
-            return Variable(tensor).cuda()
+            return tensor.cuda()
         else:
-            return Variable(tensor)
+            return tensor
 
     def _step(self, action):
         print('Input action:', action)
@@ -95,9 +94,6 @@ class PyTorchWrapper(gym.Wrapper):
         """
         Note this only works for simple action
         """
-        if isinstance(action, Variable):
-            action = action.data
-
         return self.action_processor.pytorch2gym(action)
 
     def convert_gym_state_to_pytorch(self, state):
