@@ -14,7 +14,7 @@ def MLP_factory(input_size,
     :param non_linearity: the non-linearity to use (must be a nn.Module)
     """
     
-    assert type(hidden_sizes) is list
+    # assert type(hidden_sizes) is list
     layers = []
 
     if len(hidden_sizes) == 0:
